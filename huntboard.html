@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HuntBoard — لوحة الصياد 🏹</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--line:#30363d;--txt:#e6edf3;--dim:#8b949e;--green:#3fb950;--red:#f85149;--blue:#58a6ff;--yellow:#e3b341}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',Tahoma,sans-serif;padding-bottom:40px}
+header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;position:sticky;top:0;background:var(--bg);z-index:5}
+h1{font-size:18px;color:var(--blue)}
+#date{color:var(--dim);font-size:13px}
+#summary{font-size:13px;color:var(--green)}
+nav{display:flex;gap:6px;padding:10px 12px;overflow-x:auto}
+nav button{background:var(--card);color:var(--dim);border:1px solid var(--line);padding:8px 14px;border-radius:20px;cursor:pointer;font-size:14px;white-space:nowrap}
+nav button.on{color:#fff;background:#1f6feb;border-color:#1f6feb}
+main{padding:0 12px}
+section{display:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.card h2{font-size:16px;margin-bottom:10px;color:var(--yellow)}
+.row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+input[type=text]{flex:1;min-width:150px;background:#0d1117;border:1px solid var(--line);color:var(--txt);padding:9px;border-radius:8px;font-size:14px}
+input[type=date]{background:#0d1117;border:1px solid var(--line);color:var(--txt);padding:8px;border-radius:8px}
+button.go{background:#238636;color:#fff;border:none;padding:9px 16px;border-radius:8px;cursor:pointer;font-size:14px}
+button.x{background:none;border:none;color:var(--red);cursor:pointer;font-size:15px;padding:4px}
+.item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #21262d;flex-wrap:wrap}
+.item:last-child{border-bottom:none}
+.item .txt{flex:1;font-size:14px;word-break:break-word}
+.done .txt{text-decoration:line-through;color:var(--dim)}
+.streak{background:#2d2000;color:var(--yellow);border-radius:12px;padding:2px 10px;font-size:12px;white-space:nowrap}
+.days{display:flex;gap:4px}
+.day{width:28px;height:28px;border-radius:6px;border:1px solid var(--line);background:#0d1117;cursor:pointer;font-size:9px;color:var(--dim);display:flex;align-items:center;justify-content:center}
+.day.on{background:var(--green);color:#04260a;border-color:var(--green);font-weight:bold}
+input[type=range]{accent-color:#238636;flex:1;min-width:100px}
+.pct{width:44px;text-align:center;color:var(--green);font-size:13px}
+.status{border:none;border-radius:14px;padding:3px 12px;cursor:pointer;font-size:12px}
+.s0{background:#30363d;color:var(--dim)} .s1{background:#9e6a03;color:#fff} .s2{background:#238636;color:#fff}
+.small{color:var(--dim);font-size:12px}
+.empty{color:var(--dim);font-size:13px;padding:8px 0;text-align:center}
+</style>
+</head>
+<body>
+
+<header>
+  <div><h1>HuntBoard 🏹</h1><div id="date"></div></div>
+  <div id="summary"></div>
+</header>
+
+<nav>
+  <button id="tab-today" onclick="show('today')" class="on">اليوم</button>
+  <button id="tab-habits" onclick="show('habits')">العادات 🔥</button>
+  <button id="tab-courses" onclick="show('courses')">الكورسات</button>
+  <button id="tab-goals" onclick="show('goals')">الأهداف</button>
+  <button id="tab-ideas" onclick="show('ideas')">خزانة الأفكار</button>
+  <button id="tab-backup" onclick="show('backup')">نسخة احتياطية</button>
+</nav>
+
+<main>
+
+<!-- اليوم: مهام + عادات -->
+<section id="today">
+  <div class="card">
+    <h2>مهام النهاردة</h2>
+    <div class="row">
+      <input type="text" id="taskIn" placeholder="مهمة واحدة… اكتبها ونفذها" onkeydown="if(event.key==='Enter')addTask()">
+      <button class="go" onclick="addTask()">+</button>
+    </div>
+    <div id="taskList"></div>
+  </div>
+  <div class="card">
+    <h2>عادات النهاردة</h2>
+    <div id="habitToday"></div>
+  </div>
+</section>
+
+<!-- العادات مع الستريك -->
+<section id="habits">
+  <div class="card">
+    <h2>عاداتك + الستريك (دوس على اليوم لتسجيله)</h2>
+    <div class="row">
+      <input type="text" id="habitIn" placeholder="مثال: ساعة بايثون يوميًا" onkeydown="if(event.key==='Enter')addHabit()">
+      <button class="go" onclick="addHabit()">+</button>
+    </div>
+    <div id="habitList"></div>
+  </div>
+</section>
+
+<!-- الكورسات -->
+<section id="courses">
+  <div class="card">
+    <h2>الكورسات والمسارات — حرّك الشريط بنسبة التقدم</h2>
+    <div class="row">
+      <input type="text" id="courseIn" placeholder="مثال: Let's Defend — SOC" onkeydown="if(event.key==='Enter')addCourse()">
+      <button class="go" onclick="addCourse()">+</button>
+    </div>
+    <div id="courseList"></div>
+  </div>
+</section>
+
+<!-- الأهداف -->
+<section id="goals">
+  <div class="card">
+    <h2>الأهداف — دوس على الحالة عشان تتغير</h2>
+    <div class="row">
+      <input type="text" id="goalIn" placeholder="الهدف" onkeydown="if(event.key==='Enter')addGoal()">
+      <input type="date" id="goalDate">
+      <button class="go" onclick="addGoal()">+</button>
+    </div>
+    <div id="goalList"></div>
+  </div>
+</section>
+
+<!-- الأفكار -->
+<section id="ideas">
+  <div class="card">
+    <h2>خزانة الأفكار — ارمي فيها وخليص، وقّيّمها بعدين</h2>
+    <div class="row">
+      <input type="text" id="ideaIn" placeholder="أي فكرة جت في دماغك…" onkeydown="if(event.key==='Enter')addIdea()">
+      <button class="go" onclick="addIdea()">+</button>
+    </div>
+    <div id="ideaList"></div>
+  </div>
+</section>
+
+<!-- النسخة الاحتياطية -->
+<section id="backup">
+  <div class="card">
+    <h2>نسخة احتياطية</h2>
+    <p class="small" style="margin-bottom:10px">بياناتك محفوظة في المتصفح نفسه. اعمل تصدير كل أسبوع، ولو غيرت الجهاز استورد الملف هنا.</p>
+    <div class="row">
+      <button class="go" onclick="exportData()">⬇️ تصدير</button>
+      <label class="go" style="background:#1f6feb;cursor:pointer">⬆️ استيراد
+        <input type="file" accept=".json" style="display:none" onchange="importData(event)">
+      </label>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+/* ================= الأساسيات ================= */
+const KEY='huntboard_v1';
+function empty(){return {habits:[],tasks:[],courses:[],goals:[],ideas:[]}}
+let DB;
+try{DB=JSON.parse(localStorage.getItem(KEY))||empty()}catch(e){DB=empty()}
+const save=()=>localStorage.setItem(KEY,JSON.stringify(DB));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const $=id=>document.getElementById(id);
+function fmt(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+const today=()=>fmt(new Date());
+const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ================= التبويبات ================= */
+function show(id){
+  document.querySelectorAll('main section').forEach(s=>s.style.display='none');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
+  $(id).style.display='block';
+  $('tab-'+id).classList.add('on');
+}
+
+/* ================= العادات + الستريك ================= */
+function addHabit(){
+  const v=$('habitIn').value.trim(); if(!v)return;
+  DB.habits.push({id:uid(),name:v,log:{}});
+  $('habitIn').value=''; save(); renderAll();
+}
+function delHabit(id){DB.habits=DB.habits.filter(h=>h.id!==id);save();renderAll()}
+function toggleDay(hid,date){
+  const h=DB.habits.find(x=>x.id===hid); if(!h)return;
+  if(h.log[date]) delete h.log[date]; else h.log[date]=true;
+  save(); renderAll();
+}
+function streakOf(h){
+  // لو النهاردة لسه مضغطش، نبدأ العد من امبارح عشان الستريك ميقعش قبل ما اليوم يخلص
+  let s=0,d=new Date();
+  if(!h.log[fmt(d)]) d.setDate(d.getDate()-1);
+  while(h.log[fmt(d)]){s++;d.setDate(d.getDate()-1)}
+  return s;
+}
+const DAYN=['أحد','إثن','ثلا','أرب','خمي','جمع','سبت'];
+function renderHabits(){
+  const el=$('habitList');
+  if(!DB.habits.length){el.innerHTML='<div class="empty">مفيش عادات لسه — ضيف أول واحدة</div>';return}
+  el.innerHTML=DB.habits.map(h=>{
+    let cells='';
+    for(let i=6;i>=0;i--){
+      const d=new Date(); d.setDate(d.getDate()-i);
+      const ds=fmt(d);
+      cells+=`<button class="day ${h.log[ds]?'on':''}" onclick="toggleDay('${h.id}','${ds}')" title="${ds}">${DAYN[d.getDay()]}</button>`;
+    }
+    return `<div class="item"><span class="txt">${esc(h.name)}</span>
+      <span class="streak">🔥 ${streakOf(h)}</span>
+      <div class="days">${cells}</div>
+      <button class="x" onclick="delHabit('${h.id}')">✕</button></div>`;
+  }).join('');
+}
+
+/* ================= مهام اليوم ================= */
+function addTask(){
+  const v=$('taskIn').value.trim(); if(!v)return;
+  DB.tasks.push({id:uid(),text:v,date:today(),done:false});
+  $('taskIn').value=''; save(); renderAll();
+}
+function toggleTask(id){const t=DB.tasks.find(x=>x.id===id);if(t){t.done=!t.done;save();renderAll()}}
+function delTask(id){DB.tasks=DB.tasks.filter(x=>x.id!==id);save();renderAll()}
+
+/* ================= الكورسات ================= */
+function addCourse(){
+  const v=$('courseIn').value.trim(); if(!v)return;
+  DB.courses.push({id:uid(),name:v,progress:0});
+  $('courseIn').value=''; save(); renderAll();
+}
+function delCourse(id){DB.courses=DB.courses.filter(c=>c.id!==id);save();renderAll()}
+function setCourse(id,val){const c=DB.courses.find(x=>x.id===id);if(c){c.progress=+val;save();renderAll()}}
+
+/* ================= الأهداف ================= */
+const STATES=['سأبدأ','جاري','خلصت ✅'];
+function addGoal(){
+  const v=$('goalIn').value.trim(); if(!v)return;
+  DB.goals.push({id:uid(),text:v,deadline:$('goalDate').value||'',st:0});
+  $('goalIn').value=''; save(); renderAll();
+}
+function cycleGoal(id){const g=DB.goals.find(x=>x.id===id);if(g){g.st=(g.st+1)%3;save();renderAll()}}
+function delGoal(id){DB.goals=DB.goals.filter(g=>g.id!==id);save();renderAll()}
+
+/* ================= الأفكار ================= */
+function addIdea(){
+  const v=$('ideaIn').value.trim(); if(!v)return;
+  DB.ideas.push({id:uid(),text:v,date:today()});
+  $('ideaIn').value=''; save(); renderAll();
+}
+function delIdea(id){DB.ideas=DB.ideas.filter(i=>i.id!==id);save();renderAll()}
+
+/* ================= النسخ الاحتياطي ================= */
+function exportData(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='huntboard-'+today()+'.json';
+  a.click();
+}
+function importData(ev){
+  const f=ev.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{DB=JSON.parse(e.target.result);save();renderAll();alert('تم الاستيراد ✅')}
+    catch(err){alert('الملف مش صالح ❌')}
+  };
+  r.readAsText(f);
+  ev.target.value='';
+}
+
+/* ================= العرض ================= */
+function renderAll(){
+  $('date').textContent=new Date().toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'});
+  const td=today();
+  // مهام النهاردة
+  const tasks=DB.tasks.filter(t=>t.date===td);
+  $('taskList').innerHTML=tasks.length?tasks.map(t=>`
+    <div class="item ${t.done?'done':''}">
+      <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${t.id}')">
+      <span class="txt">${esc(t.text)}</span>
+      <button class="x" onclick="delTask('${t.id}')">✕</button>
+    </div>`).join(''):'<div class="empty">اكتب مهام النهاردة… 3 حاجات بس، متشتتش</div>';
+  // عادات النهاردة
+  $('habitToday').innerHTML=DB.habits.length?DB.habits.map(h=>`
+    <div class="item ${h.log[td]?'done':''}">
+      <input type="checkbox" ${h.log[td]?'checked':''} onchange="toggleDay('${h.id}','${td}')">
+      <span class="txt">${esc(h.name)}</span>
+      <span class="streak">🔥 ${streakOf(h)}</span>
+    </div>`).join(''):'<div class="empty">ضيف عاداتك من تاب "العادات"</div>';
+  // الكورسات
+  $('courseList').innerHTML=DB.courses.length?DB.courses.map(c=>`
+    <div class="item">
+      <span class="txt">${esc(c.name)}</span>
+      <input type="range" min="0" max="100" value="${c.progress}" oninput="setCourse('${c.id}',this.value)">
+      <span class="pct">${c.progress}%</span>
+      <button class="x" onclick="delCourse('${c.id}')">✕</button>
+    </div>`).join(''):'<div class="empty">ضيف الكورسات اللي شغال عليها</div>';
+  // الأهداف
+  $('goalList').innerHTML=DB.goals.length?DB.goals.map(g=>`
+    <div class="item ${g.st===2?'done':''}">
+      <button class="status s${g.st}" onclick="cycleGoal('${g.id}')">${STATES[g.st]}</button>
+      <span class="txt">${esc(g.text)}${g.deadline?` <span class="small">— قبل ${g.deadline}</span>`:''}</span>
+      <button class="x" onclick="delGoal('${g.id}')">✕</button>
+    </div>`).join(''):'<div class="empty">اكتب أهدافك الكبيرة هنا</div>';
+  // الأفكار
+  $('ideaList').innerHTML=DB.ideas.length?DB.ideas.map(i=>`
+    <div class="item"><span class="txt">${esc(i.text)} <span class="small">— ${i.date}</span></span>
+    <button class="x" onclick="delIdea('${i.id}')">✕</button></div>`).join(''):'<div class="empty">فاضية… الفكرة الجاية اكتبها هنا فورًا</div>';
+  // ملخص الهيدر
+  const total=tasks.length+DB.habits.length;
+  const doneN=tasks.filter(t=>t.done).length+DB.habits.filter(h=>h.log[td]).length;
+  $('summary').textContent=total?`${doneN}/${total} خلصت ✅`:'';
+}
+
+/* البداية */
+show('today');
+renderAll();
+</script>
+</body>
+</html>
