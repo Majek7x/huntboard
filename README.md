@@ -1,1 +1,1 @@
-# huntboard.html
+# huntboard
