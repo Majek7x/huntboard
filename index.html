@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Bug Bounty Vault — المنصة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e14;--surface:#121826;--surface2:#0d131d;--border:#1e2a3a;--text:#e7ecf3;--muted:#8b98ab;
+--green:#2dd4a7;--green-dim:rgba(45,212,167,.10);--amber:#fbbf24;--amber-dim:rgba(251,191,36,.10);
+--red:#f87171;--blue:#60a5fa;--mono:ui-monospace,Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Cairo',Tahoma,sans-serif;padding-bottom:60px}
+button{font-family:inherit;cursor:pointer}
+a{color:var(--blue)}
+header{position:sticky;top:0;z-index:50;background:rgba(10,14,20,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:12px 20px}
+.hwrap{max-width:1000px;margin:auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.htitle{font-size:19px;font-weight:800;flex:1;min-width:200px}
+.htitle small{display:block;font-size:12px;color:var(--muted);font-weight:400}
+.ring{width:64px;height:64px;position:relative;flex-shrink:0}
+.ring svg{transform:rotate(-90deg)}
+.ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--green)}
+.hbtns{display:flex;gap:8px;flex-wrap:wrap}
+.hbtn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;display:inline-block}
+.hbtn:hover{border-color:var(--green);color:var(--green)}
+.hbtn.danger:hover{border-color:var(--red);color:var(--red)}
+.stats{max-width:1000px;margin:14px auto 6px;padding:0 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12.5px;color:var(--muted)}
+.stat b{color:var(--text)}
+.filters{display:flex;gap:6px;margin-inline-start:auto}
+.fbtn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.fbtn.active{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+main{max-width:1000px;margin:auto;padding:10px 20px}
+.stage{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:16px;overflow:hidden}
+.shead{display:flex;align-items:center;gap:12px;padding:13px 18px;cursor:pointer;user-select:none}
+.shead:hover{background:var(--surface2)}
+.sicon{font-size:22px}
+.stitle{flex:1;font-size:15.5px;font-weight:800}
+.stitle small{color:var(--muted);font-weight:400;font-size:12px;display:block}
+.sbar{width:140px;height:7px;background:var(--surface2);border-radius:6px;overflow:hidden}
+.sbar>div{height:100%;background:linear-gradient(90deg,#14b8a6,#2dd4a7);border-radius:6px;transition:width .4s}
+.spct{font-size:12px;color:var(--green);font-weight:800;width:38px;text-align:center}
+.arrow{color:var(--muted);transition:.25s}
+.stage.closed .arrow{transform:rotate(90deg)}
+.stage.closed .lessons{display:none}
+.lessons{padding:4px 14px 14px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.card.done{border-color:rgba(45,212,167,.45)}
+.card.doing{border-color:rgba(251,191,36,.4)}
+.ctitle{font-size:14px;font-weight:700;flex:1;min-width:160px;cursor:pointer}
+.ctitle:hover{color:var(--green)}
+.badges{display:flex;gap:6px;align-items:center}
+.badge{font-size:11px;padding:2px 9px;border-radius:12px;background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.badge.note{color:var(--blue);border-color:rgba(96,165,250,.4)}
+.badge.done{color:var(--green);border-color:rgba(45,212,167,.5);background:var(--green-dim)}
+.badge.doing{color:var(--amber);border-color:rgba(251,191,36,.5);background:var(--amber-dim)}
+.stbtn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:8px;font-size:11.5px;font-weight:600}
+.stbtn.on-todo{border-color:var(--blue);color:var(--blue)}
+.stbtn.on-doing{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+.stbtn.on-done{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.ghbtn{font-size:11.5px;color:var(--muted);background:none;border:1px dashed var(--border);border-radius:8px;padding:4px 10px;text-decoration:none}
+.ghbtn:hover{color:var(--green);border-color:var(--green)}
+.empty{font-size:12.5px;color:var(--muted);background:var(--surface2);border:1px dashed var(--border);border-radius:10px;padding:12px 16px;line-height:1.9}
+.empty b{color:var(--green)}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:flex-start;justify-content:center;z-index:200;padding:24px 16px;overflow:auto}
+#modal.show{display:flex}
+#modalBox{background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:820px;width:100%;padding:22px;position:relative;margin-bottom:40px}
+#mClose{position:absolute;top:12px;left:12px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:8px;width:34px;height:34px}
+#mClose:hover{color:var(--red)}
+#mTitle{font-size:18px;font-weight:800;margin-bottom:4px;padding-left:44px}
+#mMeta{font-size:12px;color:var(--muted);margin-bottom:14px;font-family:var(--mono);direction:ltr;text-align:left}
+.mcontent{border:1px solid var(--border);border-radius:10px;background:var(--surface2);padding:18px 20px;margin-bottom:14px;line-height:2;font-size:14px}
+.mcontent h1{font-size:20px;color:var(--green);margin:16px 0 8px}.mcontent h1:first-child{margin-top:0}
+.mcontent h2{font-size:17px;margin:14px 0 6px}.mcontent h3{font-size:15px;margin:10px 0 4px}
+.mcontent ul,.mcontent ol{padding-inline-start:24px}
+.mcontent li{margin:3px 0}
+.mcontent code{background:#070b11;padding:2px 6px;border-radius:5px;font-family:var(--mono);font-size:12px;color:#9fe8d3;direction:ltr;display:inline-block}
+.mcontent pre{background:#070b11;border:1px solid var(--border);border-radius:8px;padding:12px;overflow:auto;direction:ltr;text-align:left;margin:10px 0}
+.mcontent pre code{background:none;padding:0;color:#9fe8d3}
+.mcontent table{border-collapse:collapse;width:100%;margin:10px 0}
+.mcontent th,.mcontent td{border:1px solid var(--border);padding:6px 10px;font-size:13px}
+.mcontent blockquote{border-inline-start:3px solid var(--green);padding-inline-start:12px;color:var(--muted);margin:10px 0}
+.mcontent img{max-width:100%;border-radius:8px}
+.nlabel{font-size:13px;font-weight:700;margin-bottom:6px}
+.nlabel small{color:var(--muted);font-weight:400}
+.notes{width:100%;background:#0a0f17;border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13.5px;line-height:1.9;padding:12px 14px;resize:vertical;min-height:120px}
+.notes:focus{outline:none;border-color:var(--green)}
+.mactions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.savehint{font-size:11.5px;color:#566377;min-height:16px;margin-top:4px}
+.savehint.saved{color:var(--green)}
+footer{text-align:center;color:#566377;font-size:11.5px;margin-top:30px;line-height:2;padding:0 20px}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#0f1a16;border:1px solid var(--green);color:var(--green);padding:10px 22px;border-radius:10px;font-size:13px;font-weight:700;opacity:0;transition:.3s;z-index:300;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.loading{text-align:center;color:var(--muted);padding:40px 0;font-size:14px}
+@media(max-width:640px){.sbar{display:none}.filters{margin-inline-start:0;width:100%}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hwrap">
+    <div class="ring">
+      <svg width="64" height="64">
+        <circle cx="32" cy="32" r="26" fill="none" stroke="#1e2a3a" stroke-width="6"/>
+        <circle id="ringArc" cx="32" cy="32" r="26" fill="none" stroke="#2dd4a7" stroke-width="6" stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="163.4"/>
+      </svg>
+      <div class="pct" id="ringPct">0%</div>
+    </div>
+    <div class="htitle">🎯 Bug Bounty Vault — المنصة
+      <small id="repoLine">IDOR / BOLA — من الصفر لأول تقرير مقبول</small>
+    </div>
+    <div class="hbtns">
+      <button class="hbtn" id="btnRefresh">🔄 تحديث</button>
+      <a class="hbtn" id="ghLink" href="#" target="_blank">📁 GitHub</a>
+      <button class="hbtn" id="btnExport">⬇️ نسخة احتياطية</button>
+      <button class="hbtn" id="btnImport">⬆️ استيراد</button>
+      <button class="hbtn danger" id="btnReset">🗑️</button>
+    </div>
+  </div>
+</header>
+
+<div class="stats">
+  <span class="stat">✅ <b id="stDone">0</b> من <b id="stTotal">0</b></span>
+  <span class="stat">📝 شروحات: <b id="stNotes">0</b></span>
+  <span class="stat">⏱️ آخر إنجاز: <b id="stLast">—</b></span>
+  <div class="filters">
+    <button class="fbtn active" data-f="all">الكل</button>
+    <button class="fbtn" data-f="todo">مش بدأ</button>
+    <button class="fbtn" data-f="doing">جاري</button>
+    <button class="fbtn" data-f="done">خلصت</button>
+  </div>
+</div>
+
+<main id="app"><div class="loading">جاري التحميل...</div></main>
+
+<div id="modal"><div id="modalBox">
+  <button id="mClose">✕</button>
+  <div id="mTitle"></div><div id="mMeta"></div>
+  <div class="mcontent" id="mContent"></div>
+  <div class="nlabel">✍️ شرحي الشخصي <small>(بيتحفظ تلقائي — بكلامك أنت)</small></div>
+  <textarea class="notes" id="mNotes" placeholder="اكتب اللي فهمته بكلامك... اللي بتكتبه بإيدك بيفهمه بدماغك"></textarea>
+  <div class="savehint" id="mSaveHint"></div>
+  <div class="mactions">
+    <a class="hbtn" id="mEdit" href="#" target="_blank">✏️ تعديل الملف على GitHub</a>
+    <button class="hbtn" id="mReloadContent">🔄 إعادة تحميل المحتوى</button>
+  </div>
+</div></div>
+
+<input type="file" id="importInput" accept=".json" hidden>
+<div id="toast"></div>
+
+<footer>المنصة بتقرأ ملفاتك من الريبو مباشرة — تقدّمك وشروحاتك محفوظة في متصفحك، اعمل «نسخة احتياطية» كل فترة 🔒</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script>
+/* ============================================================
+   ⚙️ الإعدادات — عدّل الثلاثة دول بس وخلاص
+============================================================ */
+const CONFIG = {
+  OWNER : "YOUR-USERNAME",      // ← اسم مستخدم GitHub بتاعك
+  REPO  : "YOUR-REPO-NAME",     // ← اسم الريبو
+  BRANCH: "main",               // ← الفرع (غالباً main)
+  STAGES: [
+    {icon:"🗺️", title:"01 — خريطة الطريق",      weeks:"قبل ما تبدأ",      dir:"01-roadmap"},
+    {icon:"🧱", title:"02 — الأساسيات",          weeks:"أسابيع 1-4",       dir:"02-foundations"},
+    {icon:"🔍", title:"03 — التعمق في IDOR",     weeks:"أسابيع 5-7",       dir:"03-idor-deepdive"},
+    {icon:"🎯", title:"04 — الصيد الحقيقي",      weeks:"أسابيع 8-12",      dir:"04-hunting"},
+    {icon:"🧪", title:"05 — اللابات",            weeks:"موازي مع الكل",    dir:"05-labs"},
+    {icon:"📝", title:"06 — اختبار نفسك",        weeks:"نهاية كل مرحلة",   dir:"06-assessment"},
+  ]
+};
+
+/* ============================================================ */
+const LS_KEY = "bounty_vault_v2";
+let state = {progress:{}, notes:{}, lastDone:null};
+let filter = "all";
+const contentCache = new Map();
+
+function loadState(){ try{ state = Object.assign(state, JSON.parse(localStorage.getItem(LS_KEY)||"{}")); }catch(e){} }
+function saveState(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2200); }
+
+function prettyTitle(filename){
+  return filename.replace(/\.md$/i,"").replace(/^\d+[-_.\s]*/,"").replace(/[-_]/g," ").trim();
+}
+function lessonPath(stage, name){ return stage.dir + "/" + name; }
+function statusOf(path){ return state.progress[path] || "todo"; }
+
+/* ---------- جلب الدروس من الريبو (GitHub API) ---------- */
+async function fetchStageLessons(stage){
+  const url = `https://api.github.com/repos/${CONFIG.OWNER}/${CONFIG.REPO}/contents/content/${stage.dir}?ref=${CONFIG.BRANCH}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(res.status===404 ? "404" : "rate-limit");
+  const items = await res.json();
+  return items.filter(i=>i.type==="file" && i.name.toLowerCase().endsWith(".md"))
+              .sort((a,b)=>a.name.localeCompare(b.name))
+              .map(i=>({name:i.name, path:i.path, download_url:i.download_url}));
+}
+
+async function buildData(){
+  const stages = [];
+  for(const s of CONFIG.STAGES){
+    try{ stages.push({...s, lessons: await fetchStageLessons(s), error:null}); }
+    catch(e){
+      stages.push({...s, lessons:[], error: e.message==="404"
+        ? "الفولدر content/"+s.dir+" مش موجود في الريبو — اعمله وارفع فيه ملفات .md"
+        : "تعذر الاتصال بـ GitHub API (ممكن Rate Limit — استنى شوية أو دوس تحديث)"});
+    }
+  }
+  return stages;
+}
+
+/* ---------- الرسم ---------- */
+function render(data){
+  const app = document.getElementById("app");
+  let total=0, done=0, notesCount=0;
+
+  const html = data.map((stage,si)=>{
+    const closed = stage.lessons.some(l=>statusOf(lessonPath(stage,l.name))!=="done") && stage.lessons.length>0;
+    const sDone = stage.lessons.filter(l=>statusOf(lessonPath(stage,l.name))==="done").length;
+    const pct = stage.lessons.length ? Math.round(sDone/stage.lessons.length*100) : 0;
+
+    const cards = stage.lessons.map(l=>{
+      const p = lessonPath(stage,l.name);
+      const st = statusOf(p);
+      total++;
+      if(st==="done") done++;
+      if(state.notes[p] && state.notes[p].trim()) notesCount++;
+      if(filter!=="all" && st!==filter) return "";
+      return `<div class="card ${st}">
+        <div class="ctitle" onclick="openLesson('${p.replace(/'/g,"\\'")}','${l.download_url.replace(/'/g,"\\'")}','${prettyTitle(l.name).replace(/'/g,"\\'")}')">📄 ${prettyTitle(l.name)}</div>
+        <div class="badges">
+          ${state.notes[p]&&state.notes[p].trim()?'<span class="badge note">✍️ شرح</span>':""}
+          ${st==="done"?'<span class="badge done">✅ خلصت</span>':st==="doing"?'<span class="badge doing">⚡ جاري</span>':""}
+        </div>
+        <div class="statusbtns" style="display:flex;gap:5px">
+          <button class="stbtn ${st==='todo'?'on-todo':''}" onclick="setStatus('${p.replace(/'/g,"\\'")}','todo')">مش بدأ</button>
+          <button class="stbtn ${st==='doing'?'on-doing':''}" onclick="setStatus('${p.replace(/'/g,"\\'")}','doing')">جاري</button>
+          <button class="stbtn ${st==='done'?'on-done':''}" onclick="setStatus('${p.replace(/'/g,"\\'")}','done')">خلصت ✓</button>
+        </div>
+        <a class="ghbtn" href="https://github.com/${CONFIG.OWNER}/${CONFIG.REPO}/edit/${CONFIG.BRANCH}/${l.path}" target="_blank">✏️ تعديل</a>
+      </div>`;
+    }).join("");
+
+    const addBtn = `<a class="ghbtn" href="https://github.com/${CONFIG.OWNER}/${CONFIG.REPO}/new/${CONFIG.BRANCH}/content/${stage.dir}" target="_blank">➕ أضف درس جديد</a>`;
+
+    const body = stage.error
+      ? `<div class="empty">${stage.error}<br>${addBtn}</div>`
+      : (stage.lessons.length
+          ? cards + `<div style="text-align:left;padding-top:4px">${addBtn}</div>`
+          : `<div class="empty">الفولدر فاضي — <b>اعمل ملف .md في content/${stage.dir}/</b> على GitHub وهيظهر هنا أوتوماتيك بعد «تحديث»<br>${addBtn}</div>`);
+
+    return `<div class="stage ${closed?'closed':''}">
+      <div class="shead" onclick="this.parentElement.classList.toggle('closed')">
+        <span class="arrow">▼</span><span class="sicon">${stage.icon}</span>
+        <div class="stitle">${stage.title}<small>${stage.weeks} • ${stage.lessons.length||0} درس</small></div>
+        <div class="sbar"><div style="width:${pct}%"></div></div><span class="spct">${pct}%</span>
+      </div>
+      <div class="lessons">${body}</div>
+    </div>`;
+  }).join("");
+
+  app.innerHTML = html || "";
+  updateStats(total, done, notesCount);
+}
+
+function updateStats(total, done, notesCount){
+  document.getElementById("stTotal").textContent = total;
+  document.getElementById("stDone").textContent = done;
+  document.getElementById("stNotes").textContent = notesCount;
+  const pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById("ringPct").textContent = pct+"%";
+  document.getElementById("ringArc").style.strokeDashoffset = 163.4*(1-pct/100);
+  document.getElementById("stLast").textContent = state.lastDone ? new Date(state.lastDone).toLocaleDateString("ar-EG") : "—";
+}
+
+/* ---------- الحالات ---------- */
+function setStatus(path, st){
+  state.progress[path] = st;
+  if(st==="done") state.lastDone = Date.now();
+  saveState(); refresh();
+}
+
+/* ---------- فتح درس (المحتوى من الريبو) ---------- */
+window.openLesson = async function(path, url, title){
+  const modal = document.getElementById("modal");
+  document.getElementById("mTitle").textContent = title;
+  document.getElementById("mMeta").textContent = path;
+  document.getElementById("mEdit").href = `https://github.com/${CONFIG.OWNER}/${CONFIG.REPO}/edit/${CONFIG.BRANCH}/${path}`;
+  document.getElementById("mNotes").value = state.notes[path] || "";
+  document.getElementById("mSaveHint").textContent = "";
+  const box = document.getElementById("mContent");
+  box.innerHTML = '<div class="loading">جاري تحميل المحتوى من الريبو...</div>';
+  modal.classList.add("show");
+
+  let md;
+  try{
+    if(contentCache.has(path)) md = contentCache.get(path);
+    else{ const r = await fetch(url+"?t="+Date.now()); if(!r.ok) throw 0; md = await r.text(); contentCache.set(path, md); }
+  }catch(e){ box.innerHTML = '<div class="empty">تعذر تحميل الملف — اتأكد إنه موجود في الريبو ودوس «إعادة تحميل المحتوى»</div>'; return; }
+
+  try{
+    const raw = marked.parse(md);
+    box.innerHTML = DOMPurify.sanitize(raw, {ADD_ATTR:["target"]});
+    box.querySelectorAll("a").forEach(a=>a.target="_blank");
+  }catch(e){ box.innerHTML = `<pre>${md.replace(/</g,"&lt;")}</pre>`; }
+
+  // حفظ الشرح تلقائي
+  const ta = document.getElementById("mNotes");
+  ta.oninput = ()=>{
+    state.notes[path] = ta.value; saveState();
+    const h = document.getElementById("mSaveHint");
+    h.textContent="💾 تم الحفظ"; h.classList.add("saved");
+    clearTimeout(ta._t); ta._t = setTimeout(()=>{h.textContent="";},1500);
+  };
+};
+
+document.getElementById("mReloadContent").onclick = ()=>{ const m=document.getElementById("mMeta").textContent; contentCache.delete(m); toast("هيتم التحميل من جديد المرة الجاية"); };
+document.getElementById("mClose").onclick = ()=>{ document.getElementById("modal").classList.remove("show"); refresh(); };
+document.getElementById("modal").onclick = e=>{ if(e.target.id==="modal"){ e.target.classList.remove("show"); refresh(); } };
+
+/* ---------- نسخة احتياطية / استيراد / مسح ---------- */
+document.getElementById("btnExport").onclick = ()=>{
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "vault-progress-"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); toast("⬇️ نزّلت النسخة الاحتياطية");
+};
+document.getElementById("btnImport").onclick = ()=>document.getElementById("importInput").click();
+document.getElementById("importInput").onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{ try{ state = Object.assign({progress:{},notes:{},lastDone:null},JSON.parse(r.result)); saveState(); refresh(); toast("⬆️ اتستوردت"); }catch(err){ toast("الملف مش صحيح"); } };
+  r.readAsText(f);
+};
+document.getElementById("btnReset").onclick = ()=>{
+  if(confirm("متأكد إنك هتمسح كل التقدم والشروحات؟") && confirm("آخر فرصة — اتمسح كله؟")){ state={progress:{},notes:{},lastDone:null}; saveState(); refresh(); toast("اتمسح"); }
+};
+
+/* ---------- فلاتر + تحديث ---------- */
+document.querySelectorAll(".fbtn").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".fbtn").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); filter=b.dataset.f; refresh();
+});
+document.getElementById("btnRefresh").onclick = ()=>{ contentCache.clear(); refresh(); toast("🔄 اتحدّث من الريبو"); };
+
+async function refresh(){
+  document.getElementById("app").innerHTML = '<div class="loading">جاري قراءة الريبو من GitHub...</div>';
+  const data = await buildData();
+  render(data);
+}
+
+/* ---------- init ---------- */
+loadState();
+document.getElementById("repoLine").textContent = `${CONFIG.OWNER}/${CONFIG.REPO} — IDOR / BOLA`;
+document.getElementById("ghLink").href = `https://github.com/${CONFIG.OWNER}/${CONFIG.REPO}`;
+refresh();
+</script>
+</body>
+</html>
