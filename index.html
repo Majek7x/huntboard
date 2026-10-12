@@ -3,362 +3,668 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Bug Bounty Vault — المنصة</title>
+<title>Bug Bounty Vault</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0a0e14;--surface:#121826;--surface2:#0d131d;--border:#1e2a3a;--text:#e7ecf3;--muted:#8b98ab;
---green:#2dd4a7;--green-dim:rgba(45,212,167,.10);--amber:#fbbf24;--amber-dim:rgba(251,191,36,.10);
---red:#f87171;--blue:#60a5fa;--mono:ui-monospace,Consolas,monospace}
+/* ============ Design Tokens (الثيمات بتتعدل من هنا) ============ */
+:root{
+  --bg:#060a11; --surface:#0e1626; --inner:#0a101d; --border:#1b2942;
+  --text:#e7edf6; --muted:#8fa0b8;
+  --accent:#34d399; --accent2:#22d3ee; --accent-dim:rgba(52,211,153,.12);
+  --glow1:rgba(52,211,153,.10); --glow2:rgba(34,211,238,.07);
+  --amber:#fbbf24; --amber-dim:rgba(251,191,36,.12);
+  --red:#f87171; --blue:#60a5fa; --blue-dim:rgba(96,165,250,.12);
+  --mono:ui-monospace,'Cascadia Code',Consolas,monospace;
+}
+body[data-theme="ocean"]{--accent:#38bdf8;--accent2:#818cf8;--accent-dim:rgba(56,189,248,.12);--glow1:rgba(56,189,248,.10);--glow2:rgba(129,140,248,.08);--surface:#0d1526;--inner:#0a101c;--border:#1c2a44}
+body[data-theme="sunset"]{--accent:#fb7185;--accent2:#c084fc;--accent-dim:rgba(251,113,133,.12);--glow1:rgba(251,113,133,.10);--glow2:rgba(192,132,252,.08);--bg:#0c0810;--surface:#160f1d;--inner:#100a17;--border:#2b1e33}
+body[data-theme="light"]{--bg:#eef2f8;--surface:#fff;--inner:#f4f7fb;--border:#dfe6f0;--text:#17202f;--muted:#5f6f85;--accent:#0aa678;--accent2:#0369a1;--accent-dim:rgba(10,166,120,.12);--glow1:rgba(10,166,120,.12);--glow2:rgba(3,105,161,.08);--amber:#b45309;--red:#dc2626;--blue:#2563eb}
+
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Cairo',Tahoma,sans-serif;padding-bottom:60px}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Cairo',Tahoma,sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(700px 420px at 88% -8%,var(--glow1),transparent),
+             radial-gradient(600px 400px at -8% 100%,var(--glow2),transparent)}
 button{font-family:inherit;cursor:pointer}
-a{color:var(--blue)}
-header{position:sticky;top:0;z-index:50;background:rgba(10,14,20,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:12px 20px}
-.hwrap{max-width:1000px;margin:auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.htitle{font-size:19px;font-weight:800;flex:1;min-width:200px}
-.htitle small{display:block;font-size:12px;color:var(--muted);font-weight:400}
-.ring{width:64px;height:64px;position:relative;flex-shrink:0}
-.ring svg{transform:rotate(-90deg)}
-.ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--green)}
-.hbtns{display:flex;gap:8px;flex-wrap:wrap}
-.hbtn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;display:inline-block}
-.hbtn:hover{border-color:var(--green);color:var(--green)}
-.hbtn.danger:hover{border-color:var(--red);color:var(--red)}
-.stats{max-width:1000px;margin:14px auto 6px;padding:0 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12.5px;color:var(--muted)}
-.stat b{color:var(--text)}
-.filters{display:flex;gap:6px;margin-inline-start:auto}
-.fbtn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600}
-.fbtn.active{background:var(--green-dim);border-color:var(--green);color:var(--green)}
-main{max-width:1000px;margin:auto;padding:10px 20px}
-.stage{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:16px;overflow:hidden}
-.shead{display:flex;align-items:center;gap:12px;padding:13px 18px;cursor:pointer;user-select:none}
-.shead:hover{background:var(--surface2)}
-.sicon{font-size:22px}
-.stitle{flex:1;font-size:15.5px;font-weight:800}
-.stitle small{color:var(--muted);font-weight:400;font-size:12px;display:block}
-.sbar{width:140px;height:7px;background:var(--surface2);border-radius:6px;overflow:hidden}
-.sbar>div{height:100%;background:linear-gradient(90deg,#14b8a6,#2dd4a7);border-radius:6px;transition:width .4s}
-.spct{font-size:12px;color:var(--green);font-weight:800;width:38px;text-align:center}
-.arrow{color:var(--muted);transition:.25s}
-.stage.closed .arrow{transform:rotate(90deg)}
-.stage.closed .lessons{display:none}
-.lessons{padding:4px 14px 14px;display:flex;flex-direction:column;gap:10px}
-.card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.card.done{border-color:rgba(45,212,167,.45)}
-.card.doing{border-color:rgba(251,191,36,.4)}
-.ctitle{font-size:14px;font-weight:700;flex:1;min-width:160px;cursor:pointer}
-.ctitle:hover{color:var(--green)}
-.badges{display:flex;gap:6px;align-items:center}
-.badge{font-size:11px;padding:2px 9px;border-radius:12px;background:var(--surface);border:1px solid var(--border);color:var(--muted)}
-.badge.note{color:var(--blue);border-color:rgba(96,165,250,.4)}
-.badge.done{color:var(--green);border-color:rgba(45,212,167,.5);background:var(--green-dim)}
-.badge.doing{color:var(--amber);border-color:rgba(251,191,36,.5);background:var(--amber-dim)}
-.stbtn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:8px;font-size:11.5px;font-weight:600}
-.stbtn.on-todo{border-color:var(--blue);color:var(--blue)}
-.stbtn.on-doing{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
-.stbtn.on-done{border-color:var(--green);color:var(--green);background:var(--green-dim)}
-.ghbtn{font-size:11.5px;color:var(--muted);background:none;border:1px dashed var(--border);border-radius:8px;padding:4px 10px;text-decoration:none}
-.ghbtn:hover{color:var(--green);border-color:var(--green)}
-.empty{font-size:12.5px;color:var(--muted);background:var(--surface2);border:1px dashed var(--border);border-radius:10px;padding:12px 16px;line-height:1.9}
-.empty b{color:var(--green)}
-#modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:flex-start;justify-content:center;z-index:200;padding:24px 16px;overflow:auto}
-#modal.show{display:flex}
-#modalBox{background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:820px;width:100%;padding:22px;position:relative;margin-bottom:40px}
-#mClose{position:absolute;top:12px;left:12px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:8px;width:34px;height:34px}
-#mClose:hover{color:var(--red)}
-#mTitle{font-size:18px;font-weight:800;margin-bottom:4px;padding-left:44px}
-#mMeta{font-size:12px;color:var(--muted);margin-bottom:14px;font-family:var(--mono);direction:ltr;text-align:left}
-.mcontent{border:1px solid var(--border);border-radius:10px;background:var(--surface2);padding:18px 20px;margin-bottom:14px;line-height:2;font-size:14px}
-.mcontent h1{font-size:20px;color:var(--green);margin:16px 0 8px}.mcontent h1:first-child{margin-top:0}
-.mcontent h2{font-size:17px;margin:14px 0 6px}.mcontent h3{font-size:15px;margin:10px 0 4px}
-.mcontent ul,.mcontent ol{padding-inline-start:24px}
-.mcontent li{margin:3px 0}
-.mcontent code{background:#070b11;padding:2px 6px;border-radius:5px;font-family:var(--mono);font-size:12px;color:#9fe8d3;direction:ltr;display:inline-block}
-.mcontent pre{background:#070b11;border:1px solid var(--border);border-radius:8px;padding:12px;overflow:auto;direction:ltr;text-align:left;margin:10px 0}
-.mcontent pre code{background:none;padding:0;color:#9fe8d3}
-.mcontent table{border-collapse:collapse;width:100%;margin:10px 0}
-.mcontent th,.mcontent td{border:1px solid var(--border);padding:6px 10px;font-size:13px}
-.mcontent blockquote{border-inline-start:3px solid var(--green);padding-inline-start:12px;color:var(--muted);margin:10px 0}
-.mcontent img{max-width:100%;border-radius:8px}
-.nlabel{font-size:13px;font-weight:700;margin-bottom:6px}
-.nlabel small{color:var(--muted);font-weight:400}
-.notes{width:100%;background:#0a0f17;border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13.5px;line-height:1.9;padding:12px 14px;resize:vertical;min-height:120px}
-.notes:focus{outline:none;border-color:var(--green)}
-.mactions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-.savehint{font-size:11.5px;color:#566377;min-height:16px;margin-top:4px}
-.savehint.saved{color:var(--green)}
-footer{text-align:center;color:#566377;font-size:11.5px;margin-top:30px;line-height:2;padding:0 20px}
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#0f1a16;border:1px solid var(--green);color:var(--green);padding:10px 22px;border-radius:10px;font-size:13px;font-weight:700;opacity:0;transition:.3s;z-index:300;pointer-events:none}
+a{color:var(--accent2);text-decoration:none}
+::selection{background:var(--accent-dim)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:9px}
+
+/* ============ Layout ============ */
+.app{display:flex;min-height:100vh;position:relative;z-index:1}
+.sidebar{width:236px;flex-shrink:0;border-inline-end:1px solid var(--border);background:rgba(0,0,0,.18);
+  display:flex;flex-direction:column;padding:20px 14px;position:sticky;top:0;height:100vh}
+.brand{font-size:17px;font-weight:800;padding:2px 10px 18px;display:flex;align-items:center;gap:8px}
+.brand small{display:block;font-size:10.5px;color:var(--muted);font-weight:400}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav a{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:11px;color:var(--muted);
+  font-size:13.5px;font-weight:700;transition:.18s;border:1px solid transparent}
+.nav a:hover{color:var(--text);background:var(--inner)}
+.nav a.active{color:var(--accent);background:var(--accent-dim);border-color:rgba(52,211,153,.25)}
+.side-foot{margin-top:auto;display:flex;align-items:center;gap:12px;padding:12px 8px 0;border-top:1px solid var(--border)}
+.iconbtn{background:var(--inner);border:1px solid var(--border);color:var(--muted);width:34px;height:34px;border-radius:10px;font-size:15px;display:inline-flex;align-items:center;justify-content:center}
+.iconbtn:hover{color:var(--accent);border-color:var(--accent)}
+.ver{font-size:10.5px;color:var(--muted)}
+
+main{flex:1;min-width:0}
+.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;padding:14px 28px;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+#routeTitle{font-size:16px;font-weight:800;flex:1}
+.tb-actions{display:flex;gap:8px}
+#view{padding:26px 28px 60px;max-width:1060px;margin:auto}
+.view{animation:fadeUp .35s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ============ Components ============ */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 22px;margin-bottom:16px}
+.panel h3{font-size:15px;margin-bottom:10px}
+.hint{font-size:12.5px;color:var(--muted);line-height:1.9;margin-bottom:12px}
+.btn{background:var(--inner);border:1px solid var(--border);color:var(--text);padding:9px 18px;border-radius:11px;font-size:13px;font-weight:700;transition:.18s;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#04110b}
+.btn.primary:hover{filter:brightness(1.1);color:#04110b}
+.btn.danger:hover{border-color:var(--red);color:var(--red)}
+.btn.sm{padding:6px 12px;font-size:12px;border-radius:9px}
+.inp{width:100%;background:var(--inner);border:1px solid var(--border);border-radius:11px;color:var(--text);
+  padding:10px 14px;font-size:13px;font-family:inherit;transition:.18s}
+.inp:focus{outline:none;border-color:var(--accent)}
+textarea.inp{resize:vertical;min-height:110px;font-family:var(--mono);font-size:12px;direction:ltr;text-align:left}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.fgrid label{font-size:11.5px;color:var(--muted);font-weight:700;display:block;margin-bottom:5px}
+
+.hero{display:flex;align-items:center;gap:26px;flex-wrap:wrap}
+.hero .htxt{flex:1;min-width:240px}
+.hero h2{font-size:22px;margin-bottom:6px}
+.hero .sub{color:var(--muted);font-size:13px;line-height:1.9;margin-bottom:14px}
+.quote{font-size:12.5px;color:var(--muted);border-inline-start:3px solid var(--accent);padding-inline-start:12px;margin-top:14px;font-style:italic}
+.ring{position:relative;display:grid;place-items:center}
+.ring svg{transform:rotate(-90deg);position:absolute;inset:0}
+.ring span{font-weight:800;color:var(--accent)}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px}
+.stat b{font-size:26px;display:block;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted);font-weight:700}
+.stat.g b{color:var(--accent)} .stat.a b{color:var(--amber)} .stat.bl b{color:var(--blue)}
+.stagebar{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 16px;margin-bottom:9px;transition:.18s}
+.stagebar:hover{border-color:var(--accent)}
+.stagebar .t{flex:1;font-size:13px;font-weight:700}
+.bar{width:150px;height:7px;background:var(--inner);border-radius:6px;overflow:hidden;flex-shrink:0}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:6px;transition:width .4s}
+.pct{font-size:11.5px;color:var(--accent);font-weight:800;width:36px;text-align:center}
+
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.chip{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 15px;border-radius:20px;font-size:12px;font-weight:700;transition:.15s}
+.chip.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.toolbar .inp{max-width:240px}
+
+.stage{background:var(--surface);border:1px solid var(--border);border-radius:15px;margin-bottom:13px;overflow:hidden}
+.stage-head{display:flex;align-items:center;gap:11px;padding:13px 18px;cursor:pointer;user-select:none}
+.stage-head:hover{background:var(--inner)}
+.chev{color:var(--muted);transition:.25s;font-size:12px}
+.stage.closed .chev{transform:rotate(-90deg)}
+.stage.closed .stage-body{display:none}
+.stage-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.sicon{font-size:20px}
+.sinfo{flex:1;min-width:150px}
+.sinfo b{font-size:14px;display:block}
+.sinfo small{color:var(--muted);font-size:11.5px}
+
+.lesson{display:flex;align-items:center;gap:10px;background:var(--inner);border:1px solid var(--border);border-radius:12px;padding:9px 13px;transition:.18s}
+.lesson:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--border))}
+.lesson.doing{border-color:rgba(251,191,36,.45)}
+.lesson.done{border-color:rgba(52,211,153,.45)}
+.lmain{flex:1;min-width:140px;cursor:pointer}
+.lmain:hover .lname{color:var(--accent)}
+.lname{font-size:13px;font-weight:700;transition:.15s}
+.lpath{font-size:10.5px;color:var(--muted);font-family:var(--mono);direction:ltr;text-align:right}
+.badge{font-size:10.5px;padding:2px 9px;border-radius:12px;border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+.badge.done{color:var(--accent);border-color:rgba(52,211,153,.4);background:var(--accent-dim)}
+.badge.doing{color:var(--amber);border-color:rgba(251,191,36,.4);background:var(--amber-dim)}
+.badge.note{color:var(--blue);border-color:rgba(96,165,250,.4);background:var(--blue-dim)}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;flex-shrink:0}
+.seg button{background:transparent;border:none;border-inline-end:1px solid var(--border);color:var(--muted);padding:5px 11px;font-size:11px;font-weight:700;transition:.15s}
+.seg button:last-child{border-inline-end:none}
+.seg button[data-st="todo"].on{background:var(--blue-dim);color:var(--blue)}
+.seg button[data-st="doing"].on{background:var(--amber-dim);color:var(--amber)}
+.seg button[data-st="done"].on{background:var(--accent-dim);color:var(--accent)}
+.addrow{display:flex;justify-content:flex-start;padding-top:2px}
+
+.empty{border:1px dashed var(--border);border-radius:12px;padding:16px 18px;font-size:12.5px;color:var(--muted);line-height:2}
+.empty b{color:var(--accent)}
+
+.note-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.note-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;transition:.18s}
+.note-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.nt{font-size:13.5px;font-weight:800;margin-bottom:6px}
+.np{font-size:12px;color:var(--muted);line-height:1.8;max-height:72px;overflow:hidden}
+.nm{font-size:10.5px;color:var(--muted);font-family:var(--mono);direction:ltr;text-align:left;margin-top:8px;opacity:.7}
+
+.themes{display:flex;gap:12px;flex-wrap:wrap}
+.tsw{border:1px solid var(--border);background:var(--inner);border-radius:12px;padding:10px 16px;font-size:12.5px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:9px;transition:.18s}
+.tsw:hover{border-color:var(--accent)}
+.tsw.on{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.dot{width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,var(--sw1),var(--sw2))}
+
+/* ============ Modal ============ */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.66);backdrop-filter:blur(4px);display:none;z-index:100;padding:22px 14px;overflow-y:auto}
+#modal.show{display:block}
+.mbox{max-width:860px;margin:0 auto 40px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px;position:relative;animation:fadeUp .3s ease both}
+.mclose{position:absolute;top:14px;left:14px;width:34px;height:34px;border-radius:10px;background:var(--inner);border:1px solid var(--border);color:var(--muted)}
+.mclose:hover{color:var(--red)}
+#mTitle{font-size:19px;padding-inline-end:44px}
+#mPath{font-size:11.5px;color:var(--muted);font-family:var(--mono);direction:ltr;text-align:left;margin:4px 0 14px}
+.mrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.md{background:var(--inner);border:1px solid var(--border);border-radius:13px;padding:20px 24px;line-height:2.1;font-size:14px;margin-bottom:16px}
+.md h1{font-size:20px;color:var(--accent);margin:18px 0 8px}.md h1:first-child{margin-top:0}
+.md h2{font-size:17px;margin:14px 0 6px}.md h3{font-size:15px;margin:12px 0 4px}
+.md ul,.md ol{padding-inline-start:24px}.md li{margin:3px 0}
+.md code{background:var(--bg);padding:2px 7px;border-radius:6px;font-family:var(--mono);font-size:12px;color:var(--accent2);direction:ltr;display:inline-block}
+.md pre{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto;direction:ltr;text-align:left;margin:12px 0}
+.md pre code{background:none;padding:0}
+.md table{border-collapse:collapse;width:100%;margin:12px 0;display:block;overflow:auto}
+.md th,.md td{border:1px solid var(--border);padding:7px 12px;font-size:13px}
+.md blockquote{border-inline-start:3px solid var(--accent);padding-inline-start:14px;color:var(--muted);margin:10px 0}
+.md img{max-width:100%;border-radius:9px}
+.mnotes label{font-size:13px;font-weight:800;display:block;margin-bottom:7px}
+.mnotes small{color:var(--muted);font-weight:400}
+.savehint{font-size:11.5px;color:var(--muted);min-height:16px;margin-top:5px}
+.savehint.saved{color:var(--accent)}
+.load{text-align:center;color:var(--muted);padding:36px 0;font-size:13px}
+
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);
+  border:1px solid var(--accent);color:var(--accent);padding:10px 24px;border-radius:12px;font-size:13px;font-weight:700;opacity:0;transition:.3s;z-index:200;pointer-events:none}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.loading{text-align:center;color:var(--muted);padding:40px 0;font-size:14px}
-@media(max-width:640px){.sbar{display:none}.filters{margin-inline-start:0;width:100%}}
+
+@media(max-width:880px){
+  .app{display:block}
+  .sidebar{width:auto;height:auto;position:static;flex-direction:row;align-items:center;padding:10px 14px;gap:10px;border-inline-end:none;border-bottom:1px solid var(--border)}
+  .brand{padding:0}.brand small{display:none}
+  .nav{flex-direction:row;overflow-x:auto;flex:1}
+  .nav a{white-space:nowrap;padding:8px 12px}
+  .side-foot{margin:0;border:none;padding:0}
+  #view{padding:18px 14px 60px}
+  .topbar{padding:12px 14px}
+  .bar{display:none}
+  .lesson{flex-wrap:wrap}
+  .fgrid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 
-<header>
-  <div class="hwrap">
-    <div class="ring">
-      <svg width="64" height="64">
-        <circle cx="32" cy="32" r="26" fill="none" stroke="#1e2a3a" stroke-width="6"/>
-        <circle id="ringArc" cx="32" cy="32" r="26" fill="none" stroke="#2dd4a7" stroke-width="6" stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="163.4"/>
-      </svg>
-      <div class="pct" id="ringPct">0%</div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">🎯 Bug Bounty Vault<small>نظام متابعة مسارك</small></div>
+    <nav class="nav">
+      <a href="#/dashboard" data-route="dashboard">📊 لوحة التحكم</a>
+      <a href="#/curriculum" data-route="curriculum">📚 المنهج</a>
+      <a href="#/notes" data-route="notes">✍️ ملاحظاتي</a>
+      <a href="#/settings" data-route="settings">⚙️ الإعدادات</a>
+    </nav>
+    <div class="side-foot">
+      <div class="ring" id="sideRing" style="width:44px;height:44px"></div>
+      <button class="iconbtn" id="themeCycle" title="تبديل الثيم">🎨</button>
+      <span class="ver">v2.0</span>
     </div>
-    <div class="htitle">🎯 Bug Bounty Vault — المنصة
-      <small id="repoLine">IDOR / BOLA — من الصفر لأول تقرير مقبول</small>
-    </div>
-    <div class="hbtns">
-      <button class="hbtn" id="btnRefresh">🔄 تحديث</button>
-      <a class="hbtn" id="ghLink" href="#" target="_blank">📁 GitHub</a>
-      <button class="hbtn" id="btnExport">⬇️ نسخة احتياطية</button>
-      <button class="hbtn" id="btnImport">⬆️ استيراد</button>
-      <button class="hbtn danger" id="btnReset">🗑️</button>
-    </div>
-  </div>
-</header>
+  </aside>
 
-<div class="stats">
-  <span class="stat">✅ <b id="stDone">0</b> من <b id="stTotal">0</b></span>
-  <span class="stat">📝 شروحات: <b id="stNotes">0</b></span>
-  <span class="stat">⏱️ آخر إنجاز: <b id="stLast">—</b></span>
-  <div class="filters">
-    <button class="fbtn active" data-f="all">الكل</button>
-    <button class="fbtn" data-f="todo">مش بدأ</button>
-    <button class="fbtn" data-f="doing">جاري</button>
-    <button class="fbtn" data-f="done">خلصت</button>
-  </div>
+  <main>
+    <div class="topbar">
+      <div id="routeTitle">لوحة التحكم</div>
+      <div class="tb-actions">
+        <button class="iconbtn" id="tbRefresh" title="تحديث من GitHub">🔄</button>
+        <a class="iconbtn" id="tbGh" href="#" target="_blank" title="فتح الريبو">📁</a>
+      </div>
+    </div>
+    <div id="view"><div class="load">جاري التحميل…</div></div>
+  </main>
 </div>
 
-<main id="app"><div class="loading">جاري التحميل...</div></main>
-
-<div id="modal"><div id="modalBox">
-  <button id="mClose">✕</button>
-  <div id="mTitle"></div><div id="mMeta"></div>
-  <div class="mcontent" id="mContent"></div>
-  <div class="nlabel">✍️ شرحي الشخصي <small>(بيتحفظ تلقائي — بكلامك أنت)</small></div>
-  <textarea class="notes" id="mNotes" placeholder="اكتب اللي فهمته بكلامك... اللي بتكتبه بإيدك بيفهمه بدماغك"></textarea>
-  <div class="savehint" id="mSaveHint"></div>
-  <div class="mactions">
-    <a class="hbtn" id="mEdit" href="#" target="_blank">✏️ تعديل الملف على GitHub</a>
-    <button class="hbtn" id="mReloadContent">🔄 إعادة تحميل المحتوى</button>
+<div id="modal"><div class="mbox">
+  <button class="mclose" id="mClose">✕</button>
+  <h3 id="mTitle"></h3><div id="mPath"></div>
+  <div class="mrow">
+    <div class="seg" id="mSeg" data-path=""><button data-st="todo">لم يبدأ</button><button data-st="doing">جاري</button><button data-st="done">تم ✓</button></div>
+    <a class="btn sm" id="mEdit" href="#" target="_blank">✏️ GitHub</a>
+    <button class="btn sm" id="mReload">🔄 إعادة تحميل</button>
+  </div>
+  <article class="md" id="mContent"></article>
+  <div class="mnotes">
+    <label>✍️ شرحي الشخصي — بكلامي أنت <small>(يُحفظ تلقائيًا)</small></label>
+    <textarea class="inp" id="mNotes" style="min-height:130px" placeholder="اكتب اللي فهمته بكلامك… اللي بتكتبه بإيدك بيفهمه بدماغك"></textarea>
+    <div class="savehint" id="mHint"></div>
   </div>
 </div></div>
 
 <input type="file" id="importInput" accept=".json" hidden>
 <div id="toast"></div>
 
-<footer>المنصة بتقرأ ملفاتك من الريبو مباشرة — تقدّمك وشروحاتك محفوظة في متصفحك، اعمل «نسخة احتياطية» كل فترة 🔒</footer>
-
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <script>
-/* ============================================================
-   ⚙️ الإعدادات — عدّل الثلاثة دول بس وخلاص
-============================================================ */
-const CONFIG = {
-  OWNER : "YOUR-USERNAME",      // ← اسم مستخدم GitHub بتاعك
-  REPO  : "YOUR-REPO-NAME",     // ← اسم الريبو
-  BRANCH: "main",               // ← الفرع (غالباً main)
-  STAGES: [
-    {icon:"🗺️", title:"01 — خريطة الطريق",      weeks:"قبل ما تبدأ",      dir:"01-roadmap"},
-    {icon:"🧱", title:"02 — الأساسيات",          weeks:"أسابيع 1-4",       dir:"02-foundations"},
-    {icon:"🔍", title:"03 — التعمق في IDOR",     weeks:"أسابيع 5-7",       dir:"03-idor-deepdive"},
-    {icon:"🎯", title:"04 — الصيد الحقيقي",      weeks:"أسابيع 8-12",      dir:"04-hunting"},
-    {icon:"🧪", title:"05 — اللابات",            weeks:"موازي مع الكل",    dir:"05-labs"},
-    {icon:"📝", title:"06 — اختبار نفسك",        weeks:"نهاية كل مرحلة",   dir:"06-assessment"},
-  ]
-};
+/* ═══════════════════════════════════════════════
+   المعمار: CONFIG → STORE → GH(API) → VIEWS → ROUTER
+   لإضافة View جديد: Views.myview = {title, render}
+   لإضافة مرحلة:     من الإعدادات (JSON) أو عدّل DEF_STAGES
+   لإضافة ثيم:       بلوك CSS + سطر في THEMES
+═══════════════════════════════════════════════ */
 
-/* ============================================================ */
-const LS_KEY = "bounty_vault_v2";
-let state = {progress:{}, notes:{}, lastDone:null};
-let filter = "all";
-const contentCache = new Map();
+/* ============ 1) CONFIG ============ */
+const DEF_STAGES=[
+ {icon:"🗺️",title:"خريطة الطريق",weeks:"قبل ما تبدأ",dir:"01-roadmap"},
+ {icon:"🧱",title:"الأساسيات",weeks:"أسابيع 1-4",dir:"02-foundations"},
+ {icon:"🔍",title:"التعمق في IDOR",weeks:"أسابيع 5-7",dir:"03-idor-deepdive"},
+ {icon:"🎯",title:"الصيد الحقيقي",weeks:"أسابيع 8-12",dir:"04-hunting"},
+ {icon:"🧪",title:"اللابات",weeks:"موازي مع الكل",dir:"05-labs"},
+ {icon:"📝",title:"اختبار نفسك",weeks:"نهاية كل مرحلة",dir:"06-assessment"},
+];
+const THEMES={emerald:"زمردي",ocean:"محيطي",sunset:"غروب",light:"نهاري"};
+const LS="bounty_vault_v2";
 
-function loadState(){ try{ state = Object.assign(state, JSON.parse(localStorage.getItem(LS_KEY)||"{}")); }catch(e){} }
-function saveState(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+let cfg={owner:"",repo:"",branch:"main",token:"",theme:"emerald",stages:DEF_STAGES};
+let store={progress:{},notes:{},lastDone:null,lastOpened:null};
 
-function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2200); }
-
-function prettyTitle(filename){
-  return filename.replace(/\.md$/i,"").replace(/^\d+[-_.\s]*/,"").replace(/[-_]/g," ").trim();
+function saveAll(){try{localStorage.setItem(LS,JSON.stringify({cfg,store}))}catch(e){}}
+function loadAll(){
+  try{const r=JSON.parse(localStorage.getItem(LS)||"null");
+    if(r){cfg={...cfg,...r.cfg};store={...store,...r.store};}
+  }catch(e){}
+  if(!Array.isArray(cfg.stages)||!cfg.stages.length)cfg.stages=DEF_STAGES;
 }
-function lessonPath(stage, name){ return stage.dir + "/" + name; }
-function statusOf(path){ return state.progress[path] || "todo"; }
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const pretty=n=>n.replace(/\.md$/i,"").replace(/^\d+\s*[-_.]?\s*/,"").replace(/[-_]+/g," ").trim();
+const statusOf=p=>store.progress[p]||"todo";
+const ghUrl=(...p)=>`https://github.com/${cfg.owner}/${cfg.repo}/${p.join("/")}`;
+const editUrl=path=>cfg.owner?ghUrl("edit",cfg.branch,path):"#";
+const toast=m=>{const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove("show"),2200)};
 
-/* ---------- جلب الدروس من الريبو (GitHub API) ---------- */
-async function fetchStageLessons(stage){
-  const url = `https://api.github.com/repos/${CONFIG.OWNER}/${CONFIG.REPO}/contents/content/${stage.dir}?ref=${CONFIG.BRANCH}`;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error(res.status===404 ? "404" : "rate-limit");
-  const items = await res.json();
-  return items.filter(i=>i.type==="file" && i.name.toLowerCase().endsWith(".md"))
-              .sort((a,b)=>a.name.localeCompare(b.name))
-              .map(i=>({name:i.name, path:i.path, download_url:i.download_url}));
-}
+/* ============ 2) STORE — الثيم ============ */
+function applyTheme(){document.body.dataset.theme=cfg.theme}
 
-async function buildData(){
-  const stages = [];
-  for(const s of CONFIG.STAGES){
-    try{ stages.push({...s, lessons: await fetchStageLessons(s), error:null}); }
-    catch(e){
-      stages.push({...s, lessons:[], error: e.message==="404"
-        ? "الفولدر content/"+s.dir+" مش موجود في الريبو — اعمله وارفع فيه ملفات .md"
-        : "تعذر الاتصال بـ GitHub API (ممكن Rate Limit — استنى شوية أو دوس تحديث)"});
-    }
+/* ============ 3) GH — طبقة GitHub API الوحيدة ============ */
+const contentCache=new Map();
+const GH={
+  ttl:15*60*1000,
+  headers(extra={}){const h={...extra};if(cfg.token)h.Authorization="Bearer "+cfg.token;return h},
+  async api(url){const r=await fetch(url,{headers:this.headers()});if(!r.ok)throw new Error(r.status);return r.json()},
+  async raw(path){
+    if(contentCache.has(path))return contentCache.get(path);
+    const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${path}?ref=${cfg.branch}`,
+      {headers:this.headers({Accept:"application/vnd.github.raw"})});
+    if(!r.ok)throw new Error(r.status);
+    const md=await r.text();contentCache.set(path,md);return md;
+  },
+  async listDir(dir){
+    const ck=`ghc_${cfg.owner}/${cfg.repo}/${cfg.branch}/${dir}`;
+    try{const raw=sessionStorage.getItem(ck);
+      if(raw){const{ts,items}=JSON.parse(raw);if(Date.now()-ts<this.ttl)return items}
+    }catch(e){}
+    const items=await this.api(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/content/${dir}?ref=${cfg.branch}`);
+    const files=(Array.isArray(items)?items:[]).filter(i=>i.type==="file"&&/\.md$/i.test(i.name))
+      .sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}))
+      .map(i=>({name:i.name,path:i.path}));
+    try{sessionStorage.setItem(ck,JSON.stringify({ts:Date.now(),items:files}))}catch(e){}
+    return files;
   }
-  return stages;
+};
+function invalidate(){
+  contentCache.clear();
+  try{Object.keys(sessionStorage).filter(k=>k.startsWith("ghc_")).forEach(k=>sessionStorage.removeItem(k))}catch(e){}
 }
 
-/* ---------- الرسم ---------- */
-function render(data){
-  const app = document.getElementById("app");
-  let total=0, done=0, notesCount=0;
+/* ============ 4) المنهج (كاش واحد لكل الـ Views) ============ */
+const LESSONS=new Map();
+let CURR=null;
+async function getCurriculum(force=false){
+  if(CURR&&!force&&Date.now()-CURR.ts<GH.ttl)return CURR;
+  LESSONS.clear();
+  const stages=[];
+  for(const s of cfg.stages){
+    let lessons=[],error=null;
+    try{lessons=await GH.listDir(s.dir)}
+    catch(e){
+      error=e.message==="rate"?"Rate Limit — خلصت حصة الطلبات المؤقتة، استنى دقيقة ودوس 🔄"
+        :e.message==="404"?`فولدر <b>content/${esc(s.dir)}/</b> مش موجود في الريبو — اعمله وحط فيه ملفات <b>.md</b>`
+        :e.message==="401"?"التوكن غير صالح — راجع الإعدادات"
+        :"مشكلة اتصال — راجع اسم الريبو/التوكن في الإعدادات";
+    }
+    stages.push({...s,lessons,error});
+    lessons.forEach(l=>LESSONS.set(l.path,{...l,title:pretty(l.name),stage:s}));
+  }
+  CURR={ts:Date.now(),stages};
+  return CURR;
+}
+function stats(){
+  let total=0,done=0,doing=0,notes=0;
+  if(CURR)CURR.stages.forEach(s=>s.lessons.forEach(l=>{
+    total++;const st=statusOf(l.path);
+    if(st==="done")done++;else if(st==="doing")doing++;
+    if((store.notes[l.path]||"").trim())notes++;
+  }));
+  return{total,done,doing,notes,pct:total?Math.round(done/total*100):0};
+}
+function ringHTML(size,pct){
+  const r=(size-10)/2,c=+(2*Math.PI*r).toFixed(2);
+  return `<svg width="${size}" height="${size}">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--inner)" stroke-width="7"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--accent)" stroke-width="7"
+      stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${(c*(1-pct/100)).toFixed(2)}"/></svg>
+    <span style="font-size:${size/5.5}px">${pct}%</span>`;
+}
+function updateRing(){
+  const s=stats();
+  document.getElementById("sideRing").innerHTML=ringHTML(44,s.pct);
+  const h=document.getElementById("heroRing");if(h)h.innerHTML=ringHTML(128,s.pct);
+}
 
-  const html = data.map((stage,si)=>{
-    const closed = stage.lessons.some(l=>statusOf(lessonPath(stage,l.name))!=="done") && stage.lessons.length>0;
-    const sDone = stage.lessons.filter(l=>statusOf(lessonPath(stage,l.name))==="done").length;
-    const pct = stage.lessons.length ? Math.round(sDone/stage.lessons.length*100) : 0;
+/* ============ 5) VIEWS ============ */
+const Views={};
+let stageListFn=null,q="",f="all";
 
-    const cards = stage.lessons.map(l=>{
-      const p = lessonPath(stage,l.name);
-      const st = statusOf(p);
-      total++;
-      if(st==="done") done++;
-      if(state.notes[p] && state.notes[p].trim()) notesCount++;
-      if(filter!=="all" && st!==filter) return "";
-      return `<div class="card ${st}">
-        <div class="ctitle" onclick="openLesson('${p.replace(/'/g,"\\'")}','${l.download_url.replace(/'/g,"\\'")}','${prettyTitle(l.name).replace(/'/g,"\\'")}')">📄 ${prettyTitle(l.name)}</div>
-        <div class="badges">
-          ${state.notes[p]&&state.notes[p].trim()?'<span class="badge note">✍️ شرح</span>':""}
-          ${st==="done"?'<span class="badge done">✅ خلصت</span>':st==="doing"?'<span class="badge doing">⚡ جاري</span>':""}
+/* ─── لوحة التحكم ─── */
+Views.dashboard={
+  title:"📊 لوحة التحكم",
+  async render(v){
+    v.innerHTML='<div class="load">جاري التحميل…</div>';
+    if(!cfg.owner||!cfg.repo){
+      v.innerHTML=`<div class="view"><div class="panel" style="text-align:center;padding:46px 24px">
+        <div style="font-size:44px;margin-bottom:12px">🎯</div>
+        <h2 style="margin-bottom:8px">لوحتك جاهزة — اربطها بريبوك</h2>
+        <p class="hint" style="max-width:460px;margin:0 auto 18px">المنصة بتقرا دروسك من فولدر <b style="color:var(--accent)">content/</b> في ريبو GitHub.
+        حط اسم المستخدم واسم الريبو في الإعدادات وخلاص — من غير أي تعديل كود.</p>
+        <a class="btn primary" href="#/settings" data-route="settings">⚙️ افتح الإعدادات واربط الريبو</a>
+      </div></div>`;updateRing();return;
+    }
+    await getCurriculum();
+    const s=stats();
+    const quotes=["العمق في ثغرة واحدة يتفوق على السطح في خمسين.","اللي بيكتب بإيده بيفهمه بدماغه.",
+      "التقدم الصغير كل يوم يبني صيادًا كبيرًا.","الحصيلة مش عدد اللابات — الحصيلة عينك اللي باتت تشوف."];
+    const quote=quotes[new Date().getDate()%quotes.length];
+    const lastOpen=store.lastOpened;
+    const lastTitle=lastOpen?(LESSONS.get(lastOpen)?.title||pretty(lastOpen.split("/").pop())):null;
+
+    v.innerHTML=`<div class="view">
+      <div class="panel hero">
+        <div class="ring" id="heroRing" style="width:128px;height:128px"></div>
+        <div class="htxt">
+          <h2>استمر يا صياد 🏹</h2>
+          <div class="sub">${s.total?s.done+" درس مكتمل من "+s.total:"ابدأ أول درس النهاردة — حتى لو صفحة واحدة."}</div>
+          ${lastTitle?`<a class="btn primary" data-open="${esc(lastOpen)}" href="javascript:void(0)">▶ أكمل: ${esc(lastTitle)}</a>`
+            :`<a class="btn primary" href="#/curriculum" data-route="curriculum">▶ ابدأ من المنهج</a>`}
+          <div class="quote">"${quote}"</div>
         </div>
-        <div class="statusbtns" style="display:flex;gap:5px">
-          <button class="stbtn ${st==='todo'?'on-todo':''}" onclick="setStatus('${p.replace(/'/g,"\\'")}','todo')">مش بدأ</button>
-          <button class="stbtn ${st==='doing'?'on-doing':''}" onclick="setStatus('${p.replace(/'/g,"\\'")}','doing')">جاري</button>
-          <button class="stbtn ${st==='done'?'on-done':''}" onclick="setStatus('${p.replace(/'/g,"\\'")}','done')">خلصت ✓</button>
-        </div>
-        <a class="ghbtn" href="https://github.com/${CONFIG.OWNER}/${CONFIG.REPO}/edit/${CONFIG.BRANCH}/${l.path}" target="_blank">✏️ تعديل</a>
-      </div>`;
-    }).join("");
-
-    const addBtn = `<a class="ghbtn" href="https://github.com/${CONFIG.OWNER}/${CONFIG.REPO}/new/${CONFIG.BRANCH}/content/${stage.dir}" target="_blank">➕ أضف درس جديد</a>`;
-
-    const body = stage.error
-      ? `<div class="empty">${stage.error}<br>${addBtn}</div>`
-      : (stage.lessons.length
-          ? cards + `<div style="text-align:left;padding-top:4px">${addBtn}</div>`
-          : `<div class="empty">الفولدر فاضي — <b>اعمل ملف .md في content/${stage.dir}/</b> على GitHub وهيظهر هنا أوتوماتيك بعد «تحديث»<br>${addBtn}</div>`);
-
-    return `<div class="stage ${closed?'closed':''}">
-      <div class="shead" onclick="this.parentElement.classList.toggle('closed')">
-        <span class="arrow">▼</span><span class="sicon">${stage.icon}</span>
-        <div class="stitle">${stage.title}<small>${stage.weeks} • ${stage.lessons.length||0} درس</small></div>
-        <div class="sbar"><div style="width:${pct}%"></div></div><span class="spct">${pct}%</span>
       </div>
-      <div class="lessons">${body}</div>
-    </div>`;
+      <div class="statgrid">
+        <div class="stat g"><b>${s.done}</b><span>✅ مكتمل</span></div>
+        <div class="stat a"><b>${s.doing}</b><span>⚡ جاري</span></div>
+        <div class="stat bl"><b>${s.notes}</b><span>✍️ شروحات</span></div>
+        <div class="stat"><b>${s.total}</b><span>📄 إجمالي الدروس</span></div>
+      </div>
+      <div class="panel"><h3>📈 تقدم المراحل</h3>
+        ${CURR.stages.map((st,i)=>{
+          const d=st.lessons.filter(l=>statusOf(l.path)==="done").length;
+          const p=st.lessons.length?Math.round(d/st.lessons.length*100):0;
+          return `<a class="stagebar" href="#/curriculum"><span>${st.icon}</span>
+            <span class="t">${esc(st.title)} <small style="color:var(--muted);font-weight:400">(${d}/${st.lessons.length})</small></span>
+            <div class="bar"><i style="width:${p}%"></i></div><span class="pct">${p}%</span></a>`;
+        }).join("")}
+      </div></div>`;
+    updateRing();
+  }
+};
+
+/* ─── المنهج ─── */
+Views.curriculum={
+  title:"📚 المنهج",
+  async render(v){
+    v.innerHTML='<div class="load">جاري قراءة الريبو…</div>';
+    await getCurriculum();
+    v.innerHTML=`<div class="view">
+      <div class="toolbar">
+        <input class="inp" id="q" placeholder="🔎 دوّر على درس…" value="${esc(q)}">
+        <button class="chip ${f==="all"?"on":""}" data-filter="all">الكل</button>
+        <button class="chip ${f==="todo"?"on":""}" data-filter="todo">لم يبدأ</button>
+        <button class="chip ${f==="doing"?"on":""}" data-filter="doing">جاري</button>
+        <button class="chip ${f==="done"?"on":""}" data-filter="done">تم ✓</button>
+      </div>
+      <div id="stageList"></div></div>`;
+    document.getElementById("q").oninput=e=>{q=e.target.value;clearTimeout(window._qt);window._qt=setTimeout(()=>stageListFn&&stageListFn(),180)};
+    stageListFn=renderStageList;
+    renderStageList();updateRing();
+  }
+};
+function renderStageList(){
+  const el=document.getElementById("stageList");if(!el)return;
+  el.innerHTML=CURR.stages.map((s,si)=>{
+    let list=s.lessons;
+    if(q)list=list.filter(l=>l.name.toLowerCase().includes(q.toLowerCase())||l.path.toLowerCase().includes(q.toLowerCase()));
+    if(f!=="all")list=list.filter(l=>statusOf(l.path)===f);
+    const d=s.lessons.filter(l=>statusOf(l.path)==="done").length;
+    const p=s.lessons.length?Math.round(d/s.lessons.length*100):0;
+    const open=(s.lessons.some(l=>statusOf(l.path)==="doing")||si===0)&&!s.error;
+    let body;
+    if(s.error)body=`<div class="empty">${s.error}</div>`;
+    else if(!s.lessons.length)body=`<div class="empty">الفولدر فاضي — <b>اعمل ملف .md</b> في <b style="font-family:var(--mono)">content/${esc(s.dir)}/</b> على GitHub وهيظهر هنا بعد 🔄</div>`;
+    else body=list.map(l=>{
+      const st=statusOf(l.path);
+      return `<div class="lesson ${st}">
+        <div class="lmain" data-open="${esc(l.path)}"><div class="lname">📄 ${esc(pretty(l.name))}</div><div class="lpath">${esc(l.path)}</div></div>
+        <div>${(store.notes[l.path]||"").trim()?'<span class="badge note">✍️ شرح</span>':""}
+             ${st==="done"?'<span class="badge done">✓</span>':st==="doing"?'<span class="badge doing">⚡</span>':""}</div>
+        <div class="seg" data-path="${esc(l.path)}">
+          <button data-st="todo" class="${st==="todo"?"on":""}">لم يبدأ</button>
+          <button data-st="doing" class="${st==="doing"?"on":""}">جاري</button>
+          <button data-st="done" class="${st==="done"?"on":""}">تم</button>
+        </div>
+        <a class="iconbtn" style="width:30px;height:30px;font-size:13px" href="${editUrl(l.path)}" target="_blank" title="تعديل">✏️</a>
+      </div>`;
+    }).join("")||`<div class="empty">مفيش نتائج للبحث/الفيلتر ده</div>`;
+    return `<section class="stage ${open?"":"closed"}">
+      <div class="stage-head"><span class="chev">▾</span><span class="sicon">${s.icon}</span>
+        <div class="sinfo"><b>${esc(s.title)}</b><small>${esc(s.weeks)} • ${s.lessons.length} درس</small></div>
+        <div class="bar"><i style="width:${p}%"></i></div><span class="pct">${p}%</span></div>
+      <div class="stage-body">${body}
+        <div class="addrow"><a class="btn sm" href="${cfg.owner?ghUrl("new",cfg.branch,"content/"+s.dir):"#"}" target="_blank">➕ درس جديد</a></div>
+      </div></section>`;
   }).join("");
-
-  app.innerHTML = html || "";
-  updateStats(total, done, notesCount);
 }
 
-function updateStats(total, done, notesCount){
-  document.getElementById("stTotal").textContent = total;
-  document.getElementById("stDone").textContent = done;
-  document.getElementById("stNotes").textContent = notesCount;
-  const pct = total ? Math.round(done/total*100) : 0;
-  document.getElementById("ringPct").textContent = pct+"%";
-  document.getElementById("ringArc").style.strokeDashoffset = 163.4*(1-pct/100);
-  document.getElementById("stLast").textContent = state.lastDone ? new Date(state.lastDone).toLocaleDateString("ar-EG") : "—";
+/* ─── ملاحظاتي ─── */
+Views.notes={
+  title:"✍️ ملاحظاتي",
+  async render(v){
+    const entries=Object.entries(store.notes).filter(([p,t])=>t&&t.trim());
+    v.innerHTML=`<div class="view">
+      ${entries.length?`<p class="hint" style="margin-bottom:14px">عندك <b style="color:var(--accent)">${entries.length}</b> شرح مكتوب — دي أثمن حاجة في الفولت بتاعك.</p>
+      <div class="note-grid">${entries.map(([p,t])=>{
+        const title=LESSONS.get(p)?.title||pretty(p.split("/").pop());
+        return `<div class="note-card" data-open="${esc(p)}">
+          <div class="nt">📄 ${esc(title)}</div><div class="np">${esc(t.slice(0,150))}…</div>
+          <div class="nm">${esc(p)}</div></div>`;
+      }).join("")}</div>`
+      :`<div class="empty" style="text-align:center;padding:44px">لسه مفيش شروحات مكتوبة ✍️<br>
+        <b>افتح أي درس من المنهج واكتب اللي فهمته بكلامك تحت الشرح</b> — هيظهر هنا في أرشيفك.</div>`}
+    </div>`;
+    updateRing();
+  }
+};
+
+/* ─── الإعدادات ─── */
+Views.settings={
+  title:"⚙️ الإعدادات",
+  async render(v){
+    v.innerHTML=`<div class="view">
+      <div class="panel"><h3>🔗 الاتصال بـ GitHub</h3>
+        <p class="hint">الريبو لازم يكون <b>Public</b> لو مش هتحط توكن. لو Private — اعمل
+        <b>Personal Access Token</b> (صلاحية Contents: Read-only) وحطه هنا — بيتخزن في متصفحك بس.</p>
+        <div class="fgrid">
+          <div><label>اسم المستخدم (OWNER)</label><input class="inp" id="cOwner" value="${esc(cfg.owner)}" placeholder="mhmdhacker"></div>
+          <div><label>اسم الريبو (REPO)</label><input class="inp" id="cRepo" value="${esc(cfg.repo)}" placeholder="bounty-vault"></div>
+          <div><label>الفرع (Branch)</label><input class="inp" id="cBranch" value="${esc(cfg.branch)}" placeholder="main"></div>
+          <div><label>توكن (اختياري — Private repos)</label><input class="inp" id="cToken" type="password" value="${esc(cfg.token)}" placeholder="github_pat_…"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn primary" id="cSave">💾 حفظ وتطبيق</button>
+          <button class="btn" id="cTest">🔌 اختبار الاتصال</button><span id="testOut" style="font-size:12.5px"></span>
+        </div>
+      </div>
+      <div class="panel"><h3>🎨 المظهر</h3>
+        <div class="themes">${Object.entries(THEMES).map(([k,n])=>`
+          <button class="tsw ${cfg.theme===k?"on":""}" data-theme-set="${k}">
+            <span class="dot" data-sw="${k}"></span>${n}</button>`).join("")}
+        </div>
+      </div>
+      <div class="panel"><h3>🗂️ المراحل (متقدم)</h3>
+        <p class="hint">كل مرحلة = فولدر في <b style="font-family:var(--mono)">content/</b>. عدّل الـ JSON ده واضغط تطبيق.</p>
+        <textarea class="inp" id="cStages">${esc(JSON.stringify(cfg.stages,null,2))}</textarea>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn primary sm" id="cApplyStages">✅ تطبيق المراحل</button>
+          <button class="btn sm" id="cResetStages">↩️ استرجاع الافتراضي</button>
+        </div>
+      </div>
+      <div class="panel"><h3>💾 بياناتك (التقدم + الشروحات)</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn primary sm" id="cExport">⬇️ نسخة احتياطية</button>
+          <button class="btn sm" id="cImport">⬆️ استيراد</button>
+          <button class="btn danger sm" id="cReset">🗑️ مسح كل البيانات</button>
+        </div>
+      </div>
+      <div class="panel"><h3>🧩 التطوير (لو حبيت تضيف)</h3>
+        <p class="hint" style="margin:0">
+        • <b>مرحلة جديدة:</b> اعمل فولدر + سطر في JSON المراحل فوق.<br>
+        • <b>ثيم جديد:</b> بلوك CSS بـ <span style="font-family:var(--mono)">body[data-theme="x"]</span> + اسمه في THEMES.<br>
+        • <b>صفحة جديدة (View):</b> <span style="font-family:var(--mono)">Views.name={title, render}</span> + لينك في الـ Sidebar.<br>
+        • الطبقات مفصولة: <span style="font-family:var(--mono)">GH</span> للـ API، <span style="font-family:var(--mono)">store</span> للبيانات، <span style="font-family:var(--mono)">Views</span> للعرض.</p>
+      </div></div>`;
+
+    document.querySelectorAll(".dot").forEach(d=>{
+      const m={emerald:["#34d399","#22d3ee"],ocean:["#38bdf8","#818cf8"],sunset:["#fb7185","#c084fc"],light:["#0aa678","#0369a1"]};
+      const[m1,m2]=m[d.dataset.sw];d.style.setProperty("--sw1",m1);d.style.setProperty("--sw2",m2);
+    });
+    document.getElementById("cSave").onclick=()=>{
+      cfg.owner=document.getElementById("cOwner").value.trim();
+      cfg.repo=document.getElementById("cRepo").value.trim();
+      cfg.branch=document.getElementById("cBranch").value.trim()||"main";
+      cfg.token=document.getElementById("cToken").value.trim();
+      saveAll();invalidate();location.hash="#/dashboard";renderRoute();toast("✅ اتربط الريبو");
+    };
+    document.getElementById("cTest").onclick=async()=>{
+      const o=document.getElementById("testOut");o.textContent="… جاري الاختبار";
+      if(!cfg.owner){o.textContent="⚠️ احفظ الإعدادات الأول";return}
+      try{const r=await GH.api("https://api.github.com/rate_limit");
+        o.innerHTML=`✅ متصل — المتبقي ${r.rate.remaining}/${r.rate.limit}`;
+      }catch(e){o.innerHTML=e.message==="401"?"❌ توكن غير صالح":e.message==="404"?"❌ الريبو مش موجود أو خاص وبدون توكن":"❌ فشل الاتصال";}
+    };
+    document.getElementById("cApplyStages").onclick=()=>{
+      try{const j=JSON.parse(document.getElementById("cStages").value);
+        if(!Array.isArray(j))throw 0;
+        cfg.stages=j;saveAll();invalidate();renderRoute();toast("✅ المراحل اتحفظت");
+      }catch(e){toast("❌ JSON غير صالح")}};
+    document.getElementById("cResetStages").onclick=()=>{document.getElementById("cStages").value=JSON.stringify(DEF_STAGES,null,2)};
+    document.getElementById("cExport").onclick=()=>{
+      const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify({cfg,store},null,2)],{type:"application/json"}));
+      a.download="vault-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();toast("⬇️ نزّلت النسخة");};
+    document.getElementById("cImport").onclick=()=>document.getElementById("importInput").click();
+    document.getElementById("cReset").onclick=()=>{
+      if(confirm("هتمسح كل التقدم والشروحات والإعدادات؟")&&confirm("متأكد؟ آخر فرصة")){
+        localStorage.removeItem(LS);location.reload();}};
+    updateRing();
+  }
+};
+
+/* ============ 6) ROUTER ============ */
+let current="dashboard";
+async function renderRoute(){
+  current=(location.hash||"#/dashboard").replace(/^#\//,"");
+  if(!Views[current])current="dashboard";
+  document.querySelectorAll(".nav a").forEach(a=>a.classList.toggle("active",a.dataset.route===current));
+  document.getElementById("routeTitle").textContent=Views[current].title;
+  document.getElementById("tbGh").href=cfg.owner?ghUrl(""):"#";
+  const v=document.getElementById("view");
+  try{await Views[current].render(v)}
+  catch(e){v.innerHTML=`<div class="empty">حصل خطأ: ${esc(e.message)}</div>`}
+  updateRing();
 }
+window.addEventListener("hashchange",renderRoute);
 
-/* ---------- الحالات ---------- */
-function setStatus(path, st){
-  state.progress[path] = st;
-  if(st==="done") state.lastDone = Date.now();
-  saveState(); refresh();
-}
-
-/* ---------- فتح درس (المحتوى من الريبو) ---------- */
-window.openLesson = async function(path, url, title){
-  const modal = document.getElementById("modal");
-  document.getElementById("mTitle").textContent = title;
-  document.getElementById("mMeta").textContent = path;
-  document.getElementById("mEdit").href = `https://github.com/${CONFIG.OWNER}/${CONFIG.REPO}/edit/${CONFIG.BRANCH}/${path}`;
-  document.getElementById("mNotes").value = state.notes[path] || "";
-  document.getElementById("mSaveHint").textContent = "";
-  const box = document.getElementById("mContent");
-  box.innerHTML = '<div class="loading">جاري تحميل المحتوى من الريبو...</div>';
-  modal.classList.add("show");
-
-  let md;
+/* ============ 7) المودال (الدرس) ============ */
+let modalPath=null;
+async function openLesson(path){
+  modalPath=path;
+  const L=LESSONS.get(path);
+  const title=L?L.title:pretty(path.split("/").pop());
+  store.lastOpened=path;saveAll();
+  document.getElementById("mTitle").textContent="📄 "+title;
+  document.getElementById("mPath").textContent=path;
+  document.getElementById("mEdit").href=editUrl(path);
+  const seg=document.getElementById("mSeg");seg.dataset.path=path;
+  refreshModalSeg();
+  const ta=document.getElementById("mNotes");ta.value=store.notes[path]||"";
+  document.getElementById("mHint").textContent="";
+  const box=document.getElementById("mContent");
+  box.innerHTML='<div class="load">جاري تحميل المحتوى من الريبو…</div>';
+  document.getElementById("modal").classList.add("show");
   try{
-    if(contentCache.has(path)) md = contentCache.get(path);
-    else{ const r = await fetch(url+"?t="+Date.now()); if(!r.ok) throw 0; md = await r.text(); contentCache.set(path, md); }
-  }catch(e){ box.innerHTML = '<div class="empty">تعذر تحميل الملف — اتأكد إنه موجود في الريبو ودوس «إعادة تحميل المحتوى»</div>'; return; }
+    const md=await GH.raw(path);
+    box.innerHTML=DOMPurify.sanitize(marked.parse(md,{breaks:true}));
+    box.querySelectorAll("a").forEach(a=>{a.target="_blank";a.rel="noopener"});
+  }catch(e){box.innerHTML=`<div class="empty">تعذر تحميل المحتوى (${esc(e.message)}) — دوس 🔄 إعادة تحميل أو راجع الإعدادات.</div>`}
+}
+function refreshModalSeg(){
+  const st=statusOf(modalPath);
+  document.querySelectorAll("#mSeg button").forEach(b=>b.classList.toggle("on",b.dataset.st===st));
+}
+function closeModal(){document.getElementById("modal").classList.remove("show");modalPath=null;renderRoute()}
 
-  try{
-    const raw = marked.parse(md);
-    box.innerHTML = DOMPurify.sanitize(raw, {ADD_ATTR:["target"]});
-    box.querySelectorAll("a").forEach(a=>a.target="_blank");
-  }catch(e){ box.innerHTML = `<pre>${md.replace(/</g,"&lt;")}</pre>`; }
-
-  // حفظ الشرح تلقائي
-  const ta = document.getElementById("mNotes");
-  ta.oninput = ()=>{
-    state.notes[path] = ta.value; saveState();
-    const h = document.getElementById("mSaveHint");
-    h.textContent="💾 تم الحفظ"; h.classList.add("saved");
-    clearTimeout(ta._t); ta._t = setTimeout(()=>{h.textContent="";},1500);
-  };
-};
-
-document.getElementById("mReloadContent").onclick = ()=>{ const m=document.getElementById("mMeta").textContent; contentCache.delete(m); toast("هيتم التحميل من جديد المرة الجاية"); };
-document.getElementById("mClose").onclick = ()=>{ document.getElementById("modal").classList.remove("show"); refresh(); };
-document.getElementById("modal").onclick = e=>{ if(e.target.id==="modal"){ e.target.classList.remove("show"); refresh(); } };
-
-/* ---------- نسخة احتياطية / استيراد / مسح ---------- */
-document.getElementById("btnExport").onclick = ()=>{
-  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "vault-progress-"+new Date().toISOString().slice(0,10)+".json";
-  a.click(); toast("⬇️ نزّلت النسخة الاحتياطية");
-};
-document.getElementById("btnImport").onclick = ()=>document.getElementById("importInput").click();
-document.getElementById("importInput").onchange = e=>{
-  const f = e.target.files[0]; if(!f) return;
-  const r = new FileReader();
-  r.onload = ()=>{ try{ state = Object.assign({progress:{},notes:{},lastDone:null},JSON.parse(r.result)); saveState(); refresh(); toast("⬆️ اتستوردت"); }catch(err){ toast("الملف مش صحيح"); } };
-  r.readAsText(f);
-};
-document.getElementById("btnReset").onclick = ()=>{
-  if(confirm("متأكد إنك هتمسح كل التقدم والشروحات؟") && confirm("آخر فرصة — اتمسح كله؟")){ state={progress:{},notes:{},lastDone:null}; saveState(); refresh(); toast("اتمسح"); }
-};
-
-/* ---------- فلاتر + تحديث ---------- */
-document.querySelectorAll(".fbtn").forEach(b=>b.onclick=()=>{
-  document.querySelectorAll(".fbtn").forEach(x=>x.classList.remove("active"));
-  b.classList.add("active"); filter=b.dataset.f; refresh();
+/* ============ 8) الأحداث (Delegation موحد) ============ */
+document.addEventListener("click",e=>{
+  const t=e.target;
+  const route=t.closest("[data-route]");if(route){e.preventDefault();location.hash="#/"+route.dataset.route;return}
+  const open=t.closest("[data-open]");if(open){openLesson(open.dataset.open);return}
+  const segBtn=t.closest(".seg button");
+  if(segBtn){
+    const path=segBtn.closest(".seg").dataset.path,st=segBtn.dataset.st;
+    if(st==="done")store.lastDone=Date.now();
+    store.progress[path]=st;saveAll();
+    if(document.getElementById("modal").classList.contains("show")&&modalPath===path)refreshModalSeg();
+    renderRoute();return;
+  }
+  const chip=t.closest("[data-filter]");
+  if(chip){f=chip.dataset.filter;
+    document.querySelectorAll("[data-filter]").forEach(c=>c.classList.toggle("on",c===chip));
+    stageListFn&&stageListFn();return}
+  const themeBtn=t.closest("[data-theme-set]");
+  if(themeBtn){cfg.theme=themeBtn.dataset.themeSet;saveAll();applyTheme();renderRoute();return}
+  if(t.closest("#themeCycle")){const ks=Object.keys(THEMES);
+    cfg.theme=ks[(ks.indexOf(cfg.theme)+1)%ks.length];saveAll();applyTheme();renderRoute();return}
+  const head=t.closest(".stage-head");if(head){head.closest(".stage").classList.toggle("closed");return}
+  if(t.closest("#mReload")&&modalPath){contentCache.delete(modalPath);openLesson(modalPath);return}
+  if(t.closest("#mClose")){closeModal();return}
+  if(t.id==="modal"){closeModal();return}
 });
-document.getElementById("btnRefresh").onclick = ()=>{ contentCache.clear(); refresh(); toast("🔄 اتحدّث من الريبو"); };
+document.getElementById("tbRefresh").onclick=()=>{invalidate();renderRoute();toast("🔄 اتحمّل من الريبو تاني")};
+document.getElementById("mNotes").oninput=e=>{
+  if(!modalPath)return;store.notes[modalPath]=e.target.value;saveAll();
+  const h=document.getElementById("mHint");h.textContent="💾 اتحفظ";h.classList.add("saved");
+  clearTimeout(window._nh);window._nh=setTimeout(()=>{h.textContent=""},1400);
+};
+document.getElementById("importInput").onchange=e=>{
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const j=JSON.parse(r.result);
+    if(j.cfg)cfg={...cfg,...j.cfg};if(j.store)store={...store,...j.store};
+    saveAll();applyTheme();invalidate();renderRoute();toast("⬆️ اترستوردت");
+  }catch(err){toast("❌ الملف مش صحيح")}};
+  r.readAsText(file);
+};
 
-async function refresh(){
-  document.getElementById("app").innerHTML = '<div class="loading">جاري قراءة الريبو من GitHub...</div>';
-  const data = await buildData();
-  render(data);
-}
-
-/* ---------- init ---------- */
-loadState();
-document.getElementById("repoLine").textContent = `${CONFIG.OWNER}/${CONFIG.REPO} — IDOR / BOLA`;
-document.getElementById("ghLink").href = `https://github.com/${CONFIG.OWNER}/${CONFIG.REPO}`;
-refresh();
+/* ============ 9) INIT ============ */
+loadAll();applyTheme();
+window.Vault={Views,cfg,store,GH};   // متاح في الـ Console للتطوير
+renderRoute();
 </script>
 </body>
 </html>
